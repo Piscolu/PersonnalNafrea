@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link href="style.css" rel="stylesheet">
+    <script src="libraries/papaparse.min.js"></script>
+    <script defer src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    
+    <link rel="icon" type="image/x-icon" href="icons/josso.ico">
+
+    <title>Nafrea</title>
+</head>
+
+<body>
+    <div id="stats_window_div">
+        <img src="Images/close.svg" id="close_stats_img" onclick="close_window(0)">
+        <div id="timeline_stats">
+            <canvas id="water_timeline_stats"></canvas>
+        </div>
+        <div id="stats_right_div">
+            <div id="stats_time_past" class="stats_texts">Durée écoulée : 0 ans 0 mois</div>
+            <div id="pie_chart_conso_div">
+                <canvas id="pie_chart_conso_canvas"></canvas>
+            </div>
+            <div class="stats_parameters_div">
+                <fieldset id="stats_parameters_fieldset">
+                    <legend>Choix de la consommation (m³) :</legend>
+                    <div>
+                        <input type="radio" name="display_stats_conso" value="total" checked onChange="change_stats_conso(this.value)">
+                        <label class="tooltip" title="Consommation cumulée depuis le début de la simulation" for="total">Totale</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="display_stats_conso" value="month" onChange="change_stats_conso(this.value)">
+                        <label class="tooltip" title="Consommation du mois actuel" for="month">Mois actuel</label>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="advanced_window_div">
+        <img src="Images/close.svg" id="close_advanced_img" onclick="close_window(1)">
+        <div class="advanced_side_div">
+            <h2 class="advanced_paramater_title window_title">Paramètres avancés</h2>
+            <p class="advanced_paramater_name" title="Altitude moyenne à laquelle est situé le terrain">Altitude du site (m)</p>
+            <input class="advanced_box" id="altitude_box" type="text" min="0" max="600" value="30" step="0.01" oninput="setting_changed('altitude', this.value)">
+            <p class="advanced_paramater_name" title="Latitude moyenne du terrain">Latitude du site (deg)</p>
+            <input class="advanced_box" id="latitude_box" type="text" min="-45" max="60" value="48" step="0.01" oninput="setting_changed('latitude', this.value)">
+            <p class="advanced_paramater_name" title="Profondeur minimale à partir de laquelle on peut trouver de l'eau">Profondeur minimale de la nappe (m)</p>
+            <input class="advanced_box" id="depth_box" type="text" min="2" max="200" value="10" step="1" oninput="setting_changed('depth', this.value)">
+            <p class="advanced_paramater_name" id="permeability_coeff_advanced_label" title="Capacité d'infiltration de l'eau dans le sol (notation scientifique)">Coefficient de perméabilité (m/s) (ex: 2e-6)</p>
+            <input class="advanced_box" id="permeability_coeff_box" type="text" min="0.01" max="9.99" value="1e-5" step="0.01" oninput="setting_changed('permeability_coeff_advanced', this.value)">
+            <p class="advanced_paramater_name" id="capacity_advanced_label" title="Capacité de la nappe (notation scientifique)">Capacité de la nappe (m³) (ex: 10e9)</p>
+            <input class="advanced_box" id="capacity_box" type="text" min="0.01" max="99" value="15e9" step="0.01" oninput="setting_changed('capacity_advanced', this.value)">
+            <p class="advanced_paramater_name" title="Inclinaison de la nappe">Inclinaison de la nappe (deg)</p>
+            <input class="advanced_box" id="inclinaison_box" type="text" min="0" max="50" value="5" step="0.01" oninput="setting_changed('inclinaison', this.value)">
+            <p class="advanced_paramater_name" title="Remplissage de la nappe avant le lancement de la simulation">Remplissage initial (%)</p>
+            <input class="advanced_box" id="startfilling_box" type="number" min="0" max="100" value="65" step="1" oninput="setting_changed('startfilling', this.value)">
+        </div>
+        <div class="advanced_side_div">
+            <p class="advanced_paramater_name" id="tabHR_label" title="12 valeurs, séparées par des virgules et en notation décimale anglaise">Humidité relative mensuelle moyenne (%) (12)</p>
+            <input class="advanced_box" id="tabHR_box" type="text" value="85, 81, 77, 73, 74, 69, 68, 70, 70, 80, 85, 85" oninput="setting_changed('tabHR', this.value)">
+            <p class="advanced_paramater_name" id="tabRg_label" title="Autrement appelé rayonnement solaire. 12 valeurs, séparées par des virgules et en notation décimale anglaise">Irradiance quotidienne moyenne (kWh/m²/jour) (12)</p>
+            <input class="advanced_box" id="tabRg_box" type="text" value="1.96, 3.3, 4.6, 5.59, 5.65, 5.93, 5.99, 5.79, 5.43, 3.46, 2.46, 2.01" oninput="setting_changed('tabRg', this.value)">
+            <p class="advanced_paramater_name" id="tabv10_label" title="12 valeurs, séparées par des virgules et en notation décimale anglaise">Vitesse mensuelle moyenne du vent à 10m (m/s) (12)</p>
+            <input class="advanced_box" id="tabv10_box" type="text" value="5.22, 5.06, 4.89, 4.69, 4.36, 4.22, 4.06, 3.92, 4.19, 4.64, 4.89, 5.14" oninput="setting_changed('tabv10', this.value)">
+            <p class="advanced_paramater_name" title="Intensité des précipitations prévues par le GIEC">Intensité des précipitations (%)</p>
+            <input class="advanced_box" id="rain_intensity_box" type="number" min="0" max="300" value="100" step="0.01" oninput="setting_changed('rain_intensity', this.value)">
+            <p class="advanced_paramater_name" title="Intensité du vent renseigné en tabv10">Intensité du vent (%)</p>
+            <input class="advanced_box" id="wind_intensity_box" type="number" min="0" max="300" value="100" step="0.01" oninput="setting_changed('wind_intensity', this.value)">
+            <p class="advanced_paramater_name" title="Intensité de l'irradiance renseignée en tabRg">Intensité du rayonnement solaire (%)</p>
+            <input class="advanced_box" id="solar_intensity_box" type="number" min="0" max="300" value="100" step="0.01" oninput="setting_changed('solar_intensity', this.value)">
+            <p class="advanced_paramater_name" title="Intensité des températures prévues par le GIEC">Intensité des température (%)</p>
+            <input class="advanced_box" id="temperature_intensity_box" type="number" min="0" max="300" value="100" step="0.01" oninput="setting_changed('temperature_intensity', this.value)">
+            <p class="advanced_paramater_name" title="Limitation de l'évapotranspiration à un certain pourcentage des précipitations du jour. 0=aucune">Limite d'évapotranspiration (% des précipitations) (0=aucune)</p>
+            <input class="advanced_box" id="etp_limit_box" type="number" min="0" max="300" value="0" step="0.01" oninput="setting_changed('etp_limit', this.value)">
+        </div>
+    </div>
+
+    <div id="export_window_div">
+        <img src="Images/close.svg" id="close_stats_img" onclick="close_window(2)">
+        <h2 class="export_paramater_name tooltip window_title" title="Format table csv">Exporter des données</h2>
+        <button class="export_button" id="export_per_button" onclick="export_data('per','Remplissage de la nappe')">
+            Remplissage de la nappe (%)
+        </button>
+        <button class="export_button" id="export_ngf_button" onclick="export_data('ngf','Niveau ngf de la nappe')">
+            Niveau ngf de la nappe (m)
+        </button>
+        <button class="export_button" id="export_rain_button" onclick="export_data('rain','Précipitations mensuelles')" disabled>
+            Précipitations mensuelles (mm)
+        </button>
+        <button class="export_button" id="export_temperature_button" onclick="export_data('temperature','Températures mensuelles')" disabled>
+            Températures mensuelles (°C)
+        </button>
+    </div>
+
+    <div id="header">
+        <img id="logo" src="Images/Nafrea.png">
+        <div id="infos">
+            <div id="Entrées_div" class="compteur_div" title="Flux entrant dans la nappe (précipitations)">
+                <div id="Entrées_counter">
+                    0 m³
+                </div>
+                <div class="compteurs_img_div">
+                    <img class="compteurs_img" src="Images/arrow_downward.svg">
+                </div>
+            </div>
+            <div id="Sorties_div" class="compteur_div" title="Flux sortant de la nappe (consommation humaine et phénomènes physiques)">
+                <div id="Sorties_counter">
+                    0 m³
+                </div>
+                <div class="compteurs_img_div">
+                    <img class="compteurs_img" src="Images/arrow_upward.svg">
+                </div>
+            </div>
+        </div>
+        <div id="top_buttons">
+            <button class="top_button" onclick="window.open('wiki/wiki.html', '_blank')"><img class="top_buttons_img" src="Images/info_blue.svg" title="Documentation"></button>
+            <button class="top_button" id="info_top_button" onclick="toggle_window(0)"><img class="top_buttons_img" src="Images/stats_blue.svg" title="Graphiques"></button>
+            <button class="top_button" id="advanced_top_button" onclick="toggle_window(1)"><img class="top_buttons_img" src="Images/settings_blue.svg" title="Paramètres avancés"></button>
+            <button class="top_button" id="restart_sim_button" onclick="restart_sim()" disabled><img class="top_buttons_img" src="Images/rewind_blue.svg" title="Recommencer la simulation"></button>
+            <button class="top_button" onclick="new_session()"><img class="top_buttons_img" src="Images/add_blue.svg" title="Nouvelle session"></button>
+            <button class="top_button" onclick="import_config()"><img class="top_buttons_img" src="Images/upload_blue.svg" title="Importer une config"></button>
+            <button class="top_button" onclick="toggle_window(2)"><img class="top_buttons_img" src="Images/download_blue.svg" title="Télécharger les données"></button>
+        </div>
+    </div>
+    <div id="main_window">
+        <div id="side_menu">
+            <div id="real_menu">
+                <!-- <div class="search_bar">
+                    <img src="Images/search.svg" class="search_icon">
+                    <input type="text" class="search_form">
+                </div> -->
+                
+                <details class="category" open>
+                    <summary class="category_title">Paramètres généraux</summary>
+                    <div class="parameter_div">
+                        <fieldset id="ssp_scenario">
+                            <legend class="tooltip" title="définit les précipitations et températures">Choix du scénario climatique :</legend>
+                            <div>
+                                <input type="radio" name="scenario" value="126" onChange="change_climatic_scenario(this.value)">
+                                <label class="tooltip" title="Amélioration de la situation, notamment en matière de développement durable" for="126">SSP1-2.6</label>
+                            </div>
+
+                            <div>
+                                <input type="radio" name="scenario" value="245" checked onChange="change_climatic_scenario(this.value)">
+                                <label class="tooltip" title="Évolution future similaire à l'évolution passée, aucune modification des tendances" for="245">SSP2-4.5</label>
+                            </div>
+                            
+                            <div>
+                                <input type="radio" name="scenario" value="370" onChange="change_climatic_scenario(this.value)">
+                                <label class="tooltip" title="Aggravation de la situation, apparition de tensions" for="370">SSP3-7.0</label>
+                            </div>
+                        </fieldset>
+                    </div>
+
+                    <p class="category_subtitle tooltip" title="Non modifiables en cours de simulation">Paramètres initiaux</p>
+
+                    <form>
+                        <label class="tooltip" title="Date de début de la simulation">Début : </label>
+                        <select id="start_month_select" onchange="setting_changed('start_date', this.value)">
+                            <option value="01">Janvier</option>
+                            <option value="02">Février</option>
+                            <option value="03">Mars</option>
+                            <option value="04">Avril</option>
+                            <option value="05">Mai</option>
+                            <option value="06">Juin</option>
+                            <option value="07">Juillet</option>
+                            <option value="08">Aout</option>
+                            <option value="09">Septembre</option>
+                            <option value="10">Octobre</option>
+                            <option value="11">Novembre</option>
+                            <option value="12">Décembre</option>
+                        </select>
+                        <input id="start_year_box" type="number" min="1850" max="2099" value="2023" step="1" oninput="setting_changed('start_date', this.value)">
+                    </form>
+
+                    <div class="parameter_div">
+                        <p class="parameter_name" id="map_size_label" title="Nombre de cases par rangée">Taille de la carte (8)</p>
+                        <input class="settings_range" id="map_size_input" type="range" min="3" max="20" value="8" step="1" oninput="setting_changed('size',this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="altitude_label" title="Altitude moyenne à laquelle est situé le terrain">Atltitude du site (30 m)</p>
+                        <input class="settings_range" id="altitude_input" type="range" min="0" max="300" value="30" step="5" oninput="setting_changed('altitude', this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="depth_label" title="Profondeur minimale à partir de laquelle on peut trouver de l'eau">Profondeur de la nappe (10 m)</p>
+                        <input class="settings_range" id="depth_input" type="range" min="5" max="100" value="10" step="5" oninput="setting_changed('depth', this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="capacity_label" title="Capacité maximale de la nappe, correspond à un remplissage de 100%">Capacité de la nappe (15e9 m³)</p>
+                        <input class="settings_range" id="capacity_input" type="range" min="1" max="50" value="15" step="1" oninput="setting_changed('capacity', this.value)">
+                    </div>
+
+                    <p class="category_subtitle" title="Modifiables en cours de simulation">Paramètres variables</p>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="permeability_coeff_label" title="Capacité d'infiltration de l'eau dans le sol">Coefficient de perméabilité (1e-5 m/s)</p>
+                        <input class="settings_range" id="permeability_coeff_input" type="range" min="-8" max="-3" value="-5" step="1" oninput="setting_changed('permeability_coeff', this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="inclinaison_label" title="Inclinaison de la nappe">Inclinaison (5°)</p>
+                        <input class="settings_range" id="inclinaison_input" type="range" min="0" max="50" value="5" step="1" oninput="setting_changed('inclinaison', this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="rain_intensity_label" title="Intensité des précipitations prévues par le GIEC">Intensité des précipitations (100%)</p>
+                        <input class="settings_range" id="rain_intensity_input" type="range" min="25" max="200" value="100" step="5" oninput="setting_changed('rain_intensity', this.value)">
+                    </div>
+                    <div class="parameter_div">
+                        <p class="parameter_name"  id="temperature_intensity_label" title="Intensité des températures prévues par le GIEC">Intensité des températures (100%)</p>
+                        <input class="settings_range" id="temperature_intensity_input" type="range" min="25" max="200" value="100" step="5" oninput="setting_changed('temperature_intensity', this.value)">
+                    </div>
+                </details>
+
+                <details class="category" open>
+                    <summary class="category_title">Affichage</summary>
+                    <div class="parameter_div">
+                        <fieldset id="display_parameters_fieldset">
+                            <legend>Choix de la donnée affichée sur la timeline :</legend>  
+
+                            <div>
+                                <input type="radio" id="per_radio" name="display_data" value="percentage" checked onChange="change_chart_var(this.value)">
+                                <label class="tooltip" title="pourcentage de remplissage de la nappe en fonction de sa capacité" for="percentage">Remplissage (%)</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="ngf_radio" name="display_data" value="niv_ngf" onChange="change_chart_var(this.value)">
+                                <label class="tooltip" title="niveau ngf de la nappe, dépend de l'altitude, la prodondeur et le remplissage" for="niv_ngf">Niveau ngf (m)</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="rain_radio" name="display_data" value="rain" disabled onChange="change_chart_var(this.value)">
+                                <label class="tooltip" title="précipitations prévues par le GIEC, multipliées par l'intensité choisie" for="rain">Précipitations (mm)</label>
+                            </div>
+                            <div>
+                                <input type="radio" id="temperature_radio" name="display_data" value="temperature" disabled onChange="change_chart_var(this.value)">
+                                <label class="tooltip" title="températures prévues par le GIEC, multipliées par l'intensité choisie" for="temperature">Température (°C)</label>
+                            </div>
+                        </fieldset>
+                        <fieldset id="record_parameters_fieldset">
+                            <legend class="tooltip" title="Seules les données cochées seront disponibles à l'affichage et à l'export. Impacte les performances">Choix des données calculées :</legend>  
+
+                            <div>
+                                <input type="checkbox" id="record_per_checkbox" name="record_data" value="per" checked onChange="change_record_parameters(this.value)">
+                                <label for="per">Remplissage (%)</label>
+                            </div>
+                            <div>
+                                <input type="checkbox" id="record_ngf_checkbox" name="record_data" value="ngf" checked onChange="change_record_parameters(this.value)">
+                                <label for="ngf">Niveau ngf (m)</label>
+                            </div>
+                            <div>
+                                <input type="checkbox" id="record_rain_checkbox" ame="record_data" value="rain" unchecked onChange="change_record_parameters(this.value)">
+                                <label for="rain">Précipitations (mm)</label>
+                            </div>
+                            <div>
+                                <input type="checkbox" id="record_temperature_checkbox" name="record_data" value="temperature" unchecked onChange="change_record_parameters(this.value)">
+                                <label for="temperature">Température (°C)</label>
+                            </div>
+                        </fieldset>
+                    </div>
+                    <fieldset>
+                        <label class="tooltip" title="Activer ou non les animations des graphiques. Impacte les performances">Animations </label>
+                        <input type="checkbox" id="animations_checkbox" checked onclick="change_animations_status(this.checked)">
+                    </fieldset>
+                </details>
+
+                <details class="category" style="display: grid;" open>
+                    <summary class="category_title">Bâtiments</summary>
+                    
+                    <div id="building_buttons_div">
+                        <div id="copy_paste_div">
+                            <button class="buildings_button copy_paste_button" id="copy_button" onclick="copy_building()">Copier</button>
+                            <button class="buildings_button copy_paste_button" id="paste_button" onclick="paste_building()">Coller</button>
+                        </div>
+                        <button class="buildings_button" onclick="place_building('city')" style="background-image: url('Images/bg_city.png');">Placer une ville</button>
+                        <button class="buildings_button" onclick="place_building('farm')" style="background-image: url('Images/bg_farm.png');">Placer une ferme</button>
+                        <button class="buildings_button" onclick="place_building('forest')" style="background-image: url('Images/bg_forest.png');">Placer une forêt</button>
+                        <button class="buildings_button" onclick="place_building('industrial_area')" style="background-image: url('Images/bg_industry2.png');">Placer une zone industrielle</button>
+                        <button class="buildings_button" onclick="place_building('animals')" style="background-image: url('Images/bg_animals.png');">Placer un élevage</button>
+                        <button class="buildings_button" id="delete_building" onclick="remove_building()">Supprimer le bâtiment</button>
+                    </div>
+                </details>
+                
+                <details id="config_category" class="category" open>
+                    <summary class="category_title">Configurations</summary>
+                    <div id="config_buttons_div">
+                        <div id="preconfig_selector_div">
+                            <select id="preconfig_selector">
+                                <option value="Bas-Rhin_Strasbourg">Bas Rhin Strasbourg</option>
+                                <option value="Bouches-du-Rhône_Marseille">Bouches du Rhône Marseille</option>
+                                <option value="Corse-du-Sud_Ajaccio">Corse du Sud Ajaccio</option>
+                                <option value="Côte-d-Or_Dijon">Côte d'Or Dijon</option>
+                                <option value="Département_de_Paris_Paris">Département de Paris Paris</option>
+                                <option value="Gironde_Bordeaux">Gironde Bordeaux</option>
+                                <option value="Haute-Garonne_Toulouse">Haute Garonne Toulouse</option>
+                                <option value="Ille-et-Vilaine_Rennes">Ille et Vilaine Rennes</option>
+                                <option value="Loire-Atlantique_Nantes">Loire Atlantique Nantes</option>
+                                <option value="Nord_Lille">Nord Lille</option>
+                                <option value="Rhône_Lyon">Rhône Lyon</option>
+                                <option value="Seine-Maritime_Rouen">Seine Maritime Rouen</option>
+                                <option value="ConfigT">Configuration complète</option>
+                            </select>
+                            <button class="preconfig" id="preconfig_selector_button" onclick="import_config(true)">Importer</button>
+                        </div>
+                        <button class="preconfig" onclick="import_config()">Importer une configuration personnalisée</button>
+                        <button class="preconfig" onclick="export_config()">Exporter la configuration</button>
+                    </div>
+                </details>
+
+                <details class="category" id="Selected_building_parameters_div" open>
+                    <summary class="category_title">Sélection</summary>
+                    <div id="selection_display_menu">
+                        <div id="City_menu_div">
+                            <div id="City_menu_size_div">
+                                <div class="city_size_choice">
+                                    <input type="radio" class="city_size_button" name="city_size" value="1" onChange="setting_changed('city_size',this.value)">
+                                    <label for="html">Petite (1000 - 100 000 habitants)</label><br>
+                                </div>
+                                <div class="city_size_choice">
+                                    <input type="radio" class="city_size_button" name="city_size" value="2" checked="checked" onChange="setting_changed('city_size',this.value)">
+                                    <label for="css">Moyenne (100 000 - 500 000 habitants)</label><br>
+                                </div>
+                                <div class="city_size_choice">
+                                    <input type="radio" class="city_size_button" name="city_size" value="3" onChange="setting_changed('city_size',this.value)">
+                                    <label for="javascript">Grande (500 000 - 2 000 000 habitants)</label>
+                                </div>
+                            </div>
+                            <p class="parameter_name" id="nb_hab_label" title="Nombre d'habitants de la ville">Nombre d'habitants (100000)</p>
+                            <input class="settings_range" id="nb_hab_input" type="range" min="10000" max="2000000" value="100000" step="10000" oninput="setting_changed('city_nb_hab', this.value)">
+                            <p class="parameter_name" id="conso_hab_label" title="Consommation par habitant de la ville">Consommation par habitant (54 m³/an)</p>
+                            <input class="settings_range" id="conso_hab_input" type="range" min="10" max="150" value="54" step="1" oninput="setting_changed('city_conso_hab', this.value)">
+                            <p class="parameter_name" id="city_density_label" title="Densité de la population dans la ville">Densité de la population (5000 hb/km²)</p>
+                            <input class="settings_range" id="city_density_input" type="range" min="100" max="27000" value="5000" step="100" oninput="setting_changed('city_density', this.value)">
+                            <p class="parameter_name" id="city_green_cover_label" title="Pourcentage de couverture végétale de la ville">Couverture végétale (25 %)</p>
+                            <input class="settings_range" id="city_green_cover_input" type="range" min="0" max="100" value="25" step="1" oninput="setting_changed('city_green_cover', this.value)">
+                        </div>
+                        <div id="Farm_menu_div">
+                            <p class="parameter_name" title="Type de culture de la ferme">Type de plantation</p>
+                            <select class="settings_range" id="plantation_type_select" onchange="setting_changed('farm_plante', this.value)">
+                                <option value="Blé">Blé</option>
+                                <option value="Maïs">Maïs</option>
+                                <option value="PDT">Pommes de terre</option>
+                                <option value="Soja">Soja</option>
+                                <option value="Tournesol">Tournesol</option>
+                            </select>
+                            <p class="parameter_name" id="farm_cover_label" title="Couverture des plantations de la ferme">Couverture des plantations (1000 ha)</p>
+                            <input class="settings_range" id="farm_cover_input" type="range" min="100" max="10000" value="1000" step="100" oninput="setting_changed('farm_cover', this.value)">
+                        </div>
+                        <div id="Forest_menu_div">
+                            <p class="parameter_name" title="Type d'arbres de la forêt">Type d'arbres</p>
+                            <select class="settings_range" id="tree_type_select" onchange="setting_changed('forest_tree_type', this.value)">
+                                <option value="Chêne">Chêne</option>
+                                <option value="Hêtre">Hêtre</option>
+                                <option value="Epicéa">Epicéa</option>
+                            </select>
+                            <p class="parameter_name" id="forest_density_label" title="Densité de la forêt (occupation du terrain)">Densité de la forêt (50 %)</p>
+                            <input class="settings_range" id="forest_density_input" type="range" min="1" max="100" value="50" step="1" oninput="setting_changed('forest_density', this.value)">
+                        </div>
+                        <div id="Industrial_area_menu_div">
+                            <p class="parameter_name" id="industrie_conso_label" title="Consommation mensuelle par industrie de la case">Consommation par industrie (1500 m³)</p>
+                            <input class="settings_range" id="industrie_conso_input" type="range" min="500" max="2500" value="1500" step="100" oninput="setting_changed('industry_conso', this.value)">
+                            <p class="parameter_name" id="industrie_size_label" title="Terrain occupé par chaque industrie de la case">Taille de chaque industrie (9 ha)</p>
+                            <input class="settings_range" id="industrie_size_input" type="range" min="1" max="100" value="9" step="1" oninput="setting_changed('industry_size', this.value)">
+                            <p class="parameter_name" id="nb_industries_label" title="Nombre d'industries sur la case (présentant les mêmes propriétés de taille et consommation)">Nombre d'industries (1)</p>
+                            <input class="settings_range" id="nb_industries_input" type="range" min="1" max="1111" value="1" step="1" oninput="setting_changed('industry_number', this.value)">
+                        </div>
+                        <div id="Animals_menu_div">
+                            <p class="parameter_name" title="Type d'animal d'élevage">Type d'animal</p>
+                            <select class="settings_range" id="animal_type_select" onchange="setting_changed('animal_type', this.value)">
+                                <option value="Vache">Vache</option>
+                                <option value="Cochon">Cochon</option>
+                                <option value="Cheval">Cheval</option>
+                                <option value="Brebis">Brebis</option>
+                                <option value="Poules">Poules (milliers)</option>
+                            </select>
+                            <p class="parameter_name" id="nb_animals_label" title="Nombre d'animaux de l'élevage">Nombre d'animaux (1000)</p>
+                            <input class="settings_range" id="nb_animals_input" type="range" min="100" max="10000" value="1000" step="100" oninput="setting_changed('nb_animals', this.value)">
+                        </div>
+                    </div>
+                </details>
+                
+            </div>
+            <div id="shrink_container">
+                <button id="shrink_button" onclick="shrink_menu()"></button>
+            </div>
+        </div>
+        <div id="game_window">
+            <div id="game_display">
+                <div id="game_part">
+                    <div id="pave_3d">
+                        <div class="cube_face" id="grid_3d_div"></div>
+                        <div class="cube_face" id="cube_face_left"></div>
+                        <div class="cube_face" id="cube_face_right"></div>
+                    </div>
+                </div>
+                <div id="water_bar">
+                    <p id="water_bar_quantity">65%</p>
+                    <div id="water_bar_container">
+                        <div id="water_bar_colored">
+                            <div id="vagues"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="timeline_div">
+                <div id="timeline">
+                    <canvas id="water_timeline"></canvas>
+                </div>
+                <div id="time_buttons_div">
+                    <img class="player_button" src="Images/slow_down.svg" onclick="slow_down()">
+                    <img class="player_button" id="play_pause_button" src="Images/play.svg" onclick="play_pause()">
+                    <img class="player_button" src="Images/speed_up.svg" onclick="speed_up()">
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
